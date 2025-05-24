@@ -1,24 +1,39 @@
+// Функция для создания новой карточки на основе шаблона
+// card — объект с данными карточки (name и link)
+// deleteCard — обработчик удаления карточки
+// addLike — обработчик лайка
+// openPopupImage — функция открытия попапа с изображением
 export function createCard(card, deleteCard, addLike, openPopupImage) {
-    const templateList = document.querySelector('#card-template').content;
-    const templateCard = templateList.querySelector('.card').cloneNode(true);
-    const image = templateCard.querySelector('.card__image');
-    templateCard.querySelector('.card__title').textContent = card.name;
-    templateCard.querySelector('.card__delete-button').addEventListener('click', deleteCard);
-    templateCard.querySelector('.card__like-button').addEventListener('click', addLike);
-    image.addEventListener('click', () => openPopupImage(card.link, card.name));
-    image.src = card.link;
-    image.alt = card.name;
-    return templateCard;
-};
+    const template = document.querySelector('#card-template').content;
+    const cardElement = template.querySelector('.card').cloneNode(true);
 
+    const imageElement = cardElement.querySelector('.card__image');
+    const titleElement = cardElement.querySelector('.card__title');
+    const deleteButton = cardElement.querySelector('.card__delete-button');
+    const likeButton = cardElement.querySelector('.card__like-button');
+
+    titleElement.textContent = card.name;
+    imageElement.src = card.link;
+    imageElement.alt = card.name;
+
+    // Назначаем обработчики событий для кнопок и изображения
+    deleteButton.addEventListener('click', deleteCard);
+    likeButton.addEventListener('click', addLike);
+    imageElement.addEventListener('click', () => openPopupImage(card.link, card.name));
+
+    return cardElement;
+}
+
+// Функция-обработчик удаления карточки из DOM
 export function deleteCard(evt) {
-    const eventClick = evt.target;
-    const buttonList = eventClick.closest('.card');
-    buttonList.remove();
-};
+    const cardElement = evt.target.closest('.card');
+    cardElement.remove();
+}
 
+// Функция-обработчик постановки и снятия лайка
 export function addLike(evt) {
-    if (evt.target.classList.contains('card__like-button')) {
-        evt.target.classList.toggle('card__like-button_is-active');
+    const likeButton = evt.target;
+    if (likeButton.classList.contains('card__like-button')) {
+        likeButton.classList.toggle('card__like-button_is-active');
     }
-};
+}
