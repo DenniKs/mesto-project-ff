@@ -1,30 +1,29 @@
-// Функция открытия модального окна (попапа)
-// currentModal — DOM-элемент открываемого попапа
+// Открывает модальное окно
 export function openModal(currentModal) {
-    currentModal.classList.add('popup_is-opened');
-    document.addEventListener('keydown', closeModalEscape);
+    currentModal.classList.add('popup_is-opened'); // добавляет класс, делающий модалку видимой
+    document.addEventListener('keydown', closeModalEscape); // добавляет слушатель для закрытия по клавише Escape
 };
 
-// Функция закрытия модального окна (попапа)
-// currentModal — DOM-элемент закрываемого попапа
+// Закрывает модальное окно
 export function closeModal(currentModal) {
-    currentModal.classList.remove('popup_is-opened');
-    document.removeEventListener('keydown', closeModalEscape);
+    currentModal.classList.remove('popup_is-opened'); // удаляет класс, скрывающий модалку
+    document.removeEventListener('keydown', closeModalEscape); // удаляет обработчик клавиши Escape
 };
 
-// Функция для закрытия попапа при клике по оверлею (фону вокруг содержимого)
+// Закрывает модальное окно по клику на оверлей (область вне содержимого модалки)
 export function closeModalOverlay(evt) {
-    if (evt.target === evt.currentTarget) {
-        closeModal(evt.currentTarget);
+    const currentModal = document.querySelector('.popup_is-opened'); // находим текущее открытое модальное окно
+    if (evt.target === currentModal) { // если клик был именно по оверлею (а не по внутреннему контенту)
+        closeModal(currentModal); // закрываем модалку
     }
-}
+};
 
-// Функция закрытия попапа при нажатии клавиши Escape
+// Закрывает модальное окно при нажатии клавиши Escape
 export function closeModalEscape(evt) {
-    if (evt.key === 'Escape') {
-        const currentModal = document.querySelector('.popup_is-opened');
+    if (evt.key === 'Escape') { // проверка на нажатие клавиши Escape
+        const currentModal = document.querySelector('.popup_is-opened'); // находим текущее открытое модальное окно
         if (currentModal) {
-            closeModal(currentModal);
+            closeModal(currentModal); // закрываем его
         }
     }
 };
