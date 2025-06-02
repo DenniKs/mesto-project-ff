@@ -1,29 +1,29 @@
-// Открывает модальное окно
-export function openModal(currentModal) {
-    currentModal.classList.add('popup_is-opened'); // добавляет класс, делающий модалку видимой
-    document.addEventListener('keydown', closeModalEscape); // добавляет слушатель для закрытия по клавише Escape
-};
+// Функция для отображения модального окна
+export function showPopup(popupElement) {
+    popupElement.classList.add('popup_is-opened'); // делаем окно видимым
+    document.addEventListener('keydown', handleEscapeClose); // слушаем Escape
+}
 
-// Закрывает модальное окно
-export function closeModal(currentModal) {
-    currentModal.classList.remove('popup_is-opened'); // удаляет класс, скрывающий модалку
-    document.removeEventListener('keydown', closeModalEscape); // удаляет обработчик клавиши Escape
-};
+// Функция для скрытия модального окна
+export function hidePopup(popupElement) {
+    popupElement.classList.remove('popup_is-opened'); // убираем класс видимости
+    document.removeEventListener('keydown', handleEscapeClose); // удаляем слушатель
+}
 
-// Закрывает модальное окно по клику на оверлей (область вне содержимого модалки)
-export function closeModalOverlay(evt) {
-    const currentModal = document.querySelector('.popup_is-opened'); // находим текущее открытое модальное окно
-    if (evt.target === currentModal) { // если клик был именно по оверлею (а не по внутреннему контенту)
-        closeModal(currentModal); // закрываем модалку
+// Функция закрытия по клику на фон
+export function overlayClickHandler(event) {
+    const openedPopup = document.querySelector('.popup_is-opened');
+    if (event.target === openedPopup) {
+        hidePopup(openedPopup);
     }
-};
+}
 
-// Закрывает модальное окно при нажатии клавиши Escape
-export function closeModalEscape(evt) {
-    if (evt.key === 'Escape') { // проверка на нажатие клавиши Escape
-        const currentModal = document.querySelector('.popup_is-opened'); // находим текущее открытое модальное окно
-        if (currentModal) {
-            closeModal(currentModal); // закрываем его
+// Функция закрытия по клавише Escape
+export function handleEscapeClose(event) {
+    if (event.key === 'Escape') {
+        const openedPopup = document.querySelector('.popup_is-opened');
+        if (openedPopup) {
+            hidePopup(openedPopup);
         }
     }
-};
+}

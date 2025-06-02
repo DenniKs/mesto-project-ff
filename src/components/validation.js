@@ -1,98 +1,86 @@
-// Проверка валидности одного инпута
-export const isValid = (formElement, inputElement, configValidation) => {
-    // Установка кастомного сообщения об ошибке при несоответствии шаблону
-    if (inputElement.validity.patternMismatch) {
-        inputElement.setCustomValidity(inputElement.dataset.errorMessage); // берем сообщение из data-атрибута
+// Проверка валидности одного поля формы
+export const validateInput = (form, input, config) => {
+    if (input.validity.patternMismatch) {
+        input.setCustomValidity(input.dataset.errorMessage || '');
     } else {
-        inputElement.setCustomValidity(""); // сброс кастомного сообщения
+        input.setCustomValidity('');
     }
 
-    // Отображаем ошибку, если поле невалидно, иначе скрываем
-    if (!inputElement.validity.valid) {
-        showInputError(formElement, inputElement, inputElement.validationMessage, configValidation);
+    if (!input.validity.valid) {
+        displayError(form, input, input.validationMessage, config);
     } else {
-        hideInputError(formElement, inputElement, configValidation);
+        removeError(form, input, config);
     }
 };
 
-// Отображает сообщение об ошибке под инпутом
-export const showInputError = (formElement, inputElement, errorMessage, configValidation) => {
-    const errorElement = formElement.querySelector(`.${inputElement.id}-error`); // элемент с текстом ошибки
-    inputElement.classList.add(configValidation.errorClass); // добавляем класс, стилизующий невалидный инпут
-    errorElement.textContent = errorMessage; // вставляем текст ошибки
-    errorElement.classList.add(configValidation.inputErrorClass); // отображаем ошибку
+// Показывает сообщение об ошибке
+export const displayError = (form, input, message, config) => {
+    const errorText = form.querySelector(`.${input.id}-error`);
+    input.classList.add(config.errorClass);
+    errorText.textContent = message;
+    errorText.classList.add(config.inputErrorClass);
 };
 
-// Скрывает сообщение об ошибке
-export const hideInputError = (formElement, inputElement, configValidation) => {
-    const errorElement = formElement.querySelector(`.${inputElement.id}-error`);
-    inputElement.classList.remove(configValidation.errorClass); // удаляем класс ошибки с инпута
-    errorElement.textContent = ''; // очищаем текст ошибки
-    errorElement.classList.remove(configValidation.inputErrorClass); // скрываем элемент ошибки
+// Убирает сообщение об ошибке
+export const removeError = (form, input, config) => {
+    const errorText = form.querySelector(`.${input.id}-error`);
+    input.classList.remove(config.errorClass);
+    errorText.textContent = '';
+    errorText.classList.remove(config.inputErrorClass);
 };
 
-// Деактивирует кнопку сабмита
-const disableSubmitButton = (button, config) => {
-    button.disabled = true; // блокируем кнопку
-    button.classList.add(config.inactiveButtonClass); // добавляем класс неактивности
+// Отключает кнопку отправки
+const blockSubmitButton = (button, config) => {
+    button.disabled = true;
+    button.classList.add(config.inactiveButtonClass);
 };
 
-// Активирует кнопку сабмита
-const enableSubmitButton = (button, config) => {
+// Включает кнопку отправки
+const unblockSubmitButton = (button, config) => {
     button.disabled = false;
-    button.classList.remove(config.inactiveButtonClass); // убираем класс неактивности
+    button.classList.remove(config.inactiveButtonClass);
 };
 
-// Проверка, есть ли среди всех инпутов невалидные
-export const hasInvalidInput = (inputList) => {
-    return inputList.some((inputElement) => {
-        return !inputElement.validity.valid;
-    });
+// Проверяет наличие невалидных полей
+export const containsInvalidInput = (inputs) => {
+    return inputs.some(input => !input.validity.valid);
 };
 
-// Управление состоянием кнопки отправки формы
-export const toggleButtonState = (inputList, buttonElement, configValidation) => {
-    if (hasInvalidInput(inputList)) {
-        disableSubmitButton(buttonElement, configValidation); // если есть ошибки — выключаем кнопку
+// Обновляет состояние кнопки отправки
+export const updateSubmitState = (inputs, button, config) => {
+    if (containsInvalidInput(inputs)) {
+        blockSubmitButton(button, config);
     } else {
-        enableSubmitButton(buttonElement, configValidation); // иначе — включаем
+        unblockSubmitButton(button, config);
     }
 };
 
-// Устанавливает обработчики на поля формы и кнопку
-export const setEventListeners = (formElement, configValidation) => {
-    const inputList = Array.from(formElement.querySelectorAll(configValidation.inputSelector)); // список инпутов
-    const buttonElement = formElement.querySelector(configValidation.submitButtonSelector); // кнопка отправки
+// Назначает обработчики события ввода
+export const applyValidationListeners = (form, config) => {
+    const inputs = Array.from(form.querySelectorAll(config.inputSelector));
+    const submitBtn = form.querySelector(config.submitButtonSelector);
 
-    toggleButtonState(inputList, buttonElement, configValidation); // начальное состояние кнопки
+    updateSubmitState(inputs, submitBtn, config);
 
-    // На каждый инпут — обработчик ввода
-    inputList.forEach((inputElement) => {
-        inputElement.addEventListener('input', () => {
-            isValid(formElement, inputElement, configValidation); // проверка конкретного инпута
-            toggleButtonState(inputList, buttonElement, configValidation); // обновление состояния кнопки
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            validateInput(form, input, config);
+            updateSubmitState(inputs, submitBtn, config);
         });
     });
 };
 
-// Инициализация валидации для всех форм на странице
-export const enableValidation = (configValidation) => {
-    const formList = Array.from(document.querySelectorAll(configValidation.formSelector)); // все формы
-    formList.forEach((formElement) => {
-        setEventListeners(formElement, configValidation); // подключаем обработчики
-    });
+// Запускает валидацию для всех форм на странице
+export const initFormValidation = (config) => {
+    const forms = Array.from(document.querySelectorAll(config.formSelector));
+    forms.forEach(form => applyValidationListeners(form, config));
 };
 
-// Очищает ошибки и блокирует кнопку при открытии формы
-export function clearValidation(formElement, configValidation) {
-    const inputList = Array.from(formElement.querySelectorAll(configValidation.inputSelector)); // инпуты формы
-    const buttonElement = formElement.querySelector(configValidation.submitButtonSelector); // кнопка отправки
+// Сброс валидации при открытии формы
+export const resetValidationState = (form, config) => {
+    const inputs = Array.from(form.querySelectorAll(config.inputSelector));
+    const submitBtn = form.querySelector(config.submitButtonSelector);
 
-    // Скрываем все ошибки
-    inputList.forEach((inputElement) => {
-        hideInputError(formElement, inputElement, configValidation);
-    });
-
-    // Деактивируем кнопку отправки
-    disableSubmitButton(buttonElement, configValidation);
+    inputs.forEach(input => removeError(form, input, config));
+    blockSubmitButton(submitBtn, config);
 };

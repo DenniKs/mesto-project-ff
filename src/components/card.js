@@ -1,87 +1,96 @@
-import { openModal } from "./modal";
+import { showPopup } from './modal';
+
+/**
+ * Проверяет, содержит ли элемент указанный CSS-класс.
+ *
+ * @param {Element} element - DOM-элемент, у которого проверяется наличие класса.
+ * @param {string} className - Имя класса, которое нужно проверить.
+ * @returns {boolean} - true, если элемент содержит класс, иначе false.
+ */
+function hasClass(element, className) {
+    return element.classList.contains(className);
+}
 
 /**
  * Создаёт DOM-элемент карточки на основе переданных данных.
- * 
- * @param {Object} cardData - Данные карточки (название, ссылка, лайки, владелец и т.д.)
- * @param {Function} handleDeleteCard - Функция для удаления карточки с сервера
- * @param {Function} handleLikeToggle - Функция для добавления/удаления лайка
- * @param {string} currentUserId - ID текущего пользователя
- * @param {Function} openImagePopup - Функция для открытия попапа с изображением
- * @returns {HTMLElement} - DOM-элемент карточки
+ *
+ * @param {Object} data - Данные карточки: имя, ссылка, лайки, владелец.
+ * @param {Function} onDelete - Функция для удаления карточки с сервера.
+ * @param {Function} onLikeToggle - Функция для добавления/удаления лайка.
+ * @param {string} userId - ID текущего пользователя.
+ * @param {Function} onImageClick - Функция открытия попапа с изображением.
+ * @returns {HTMLElement} - Созданный элемент карточки.
  */
-export function createCard(cardData, handleDeleteCard, handleLikeToggle, currentUserId, openImagePopup) {
-    // Получаем шаблон карточки из DOM и клонируем его содержимое
-    const cardTemplate = document.querySelector('#card-template').content;
-    const cardElement = cardTemplate.querySelector('.card').cloneNode(true);
+export function createCard(data, onDelete, onLikeToggle, userId, onImageClick) {
+    // Получаем шаблон карточки и клонируем его содержимое
+    const template = document.querySelector('#card-template').content;
+    const cardNode = template.querySelector('.card').cloneNode(true);
 
-    // Получаем элементы внутри карточки
-    const likeButton = cardElement.querySelector('.card__like-button');
-    const cardImage = cardElement.querySelector('.card__image');
-    const likeCounter = cardElement.querySelector('.card__count');
-    const cardTitle = cardElement.querySelector('.card__title');
-    const deletePopup = cardElement.querySelector('.popup_type_trash');
-    const deleteButton = cardElement.querySelector('.card__delete-button');
-    const confirmDeleteButton = cardElement.querySelector('.popup__button');
+    // Находим нужные элементы внутри карточки
+    const btnLike = cardNode.querySelector('.card__like-button');
+    const imgElement = cardNode.querySelector('.card__image');
+    const likeCount = cardNode.querySelector('.card__count');
+    const titleElement = cardNode.querySelector('.card__title');
+    const btnDelete = cardNode.querySelector('.card__delete-button');
+    const popupTrash = cardNode.querySelector('.popup_type_trash');
+    const confirmDelete = cardNode.querySelector('.popup__button');
 
-    // Устанавливаем текст заголовка и количество лайков
-    likeCounter.textContent = cardData.likes ? cardData.likes.length : 0;
-    cardTitle.textContent = cardData.name;
+    // Устанавливаем данные карточки
+    titleElement.textContent = data.name;
+    likeCount.textContent = data.likes?.length ?? 0;
 
-    // Проверяем, лайкнул ли пользователь эту карточку
-    const isLikedByUser = cardData.likes.some(like => like._id === currentUserId);
-    if (isLikedByUser) {
-        likeButton.classList.add('card__like-button_is-active');
+    // Отмечаем лайк, если текущий пользователь уже лайкал карточку
+    const liked = data.likes.some(likeObj => likeObj._id === userId);
+    if (liked) {
+        btnLike.classList.add('card__like-button_is-active');
     }
 
     // Обработчик клика по кнопке лайка
-    likeButton.addEventListener('click', () => {
-        const hasUserLiked = likeButton.classList.contains('card__like-button_is-active');
+    btnLike.addEventListener('click', () => {
+        const alreadyLiked = hasClass(btnLike, 'card__like-button_is-active');
 
-        // Вызываем функцию для добавления/удаления лайка на сервере
-        handleLikeToggle(cardData._id, hasUserLiked)
-            .then((updatedCard) => {
-                // Обновляем состояние кнопки и счётчик лайков
-                likeButton.classList.toggle('card__like-button_is-active');
-                likeCounter.textContent = updatedCard.likes.length;
+        // Отправляем запрос на сервер для установки/снятия лайка
+        onLikeToggle(data._id, alreadyLiked)
+            .then((updated) => {
+                btnLike.classList.toggle('card__like-button_is-active'); // переключаем состояние кнопки
+                likeCount.textContent = updated.likes.length; // обновляем количество лайков
             })
-            .catch((error) => {
-                console.error('Ошибка при установке лайка:', error);
+            .catch(err => {
+                console.error('Не удалось обновить лайк:', err);
             });
     });
 
     // Проверяем, является ли пользователь владельцем карточки
-    if (currentUserId !== cardData.owner._id) {
-        // Если нет — убираем кнопку удаления
-        deleteButton.remove();
+    const isOwner = data.owner._id === userId;
+    if (!isOwner) {
+        // Если не владелец — удаляем кнопку удаления
+        btnDelete.remove();
     } else {
-        // Если да — добавляем обработчики на удаление
-        deleteButton.addEventListener('click', () => {
-            // Открываем попап подтверждения удаления
-            openModal(deletePopup);
+        // Если владелец — добавляем обработчики удаления карточки
+        btnDelete.addEventListener('click', () => {
+            showPopup(popupTrash); // открываем попап подтверждения
         });
 
-        confirmDeleteButton.addEventListener('click', () => {
-            // Удаляем карточку на сервере, затем из DOM
-            handleDeleteCard(cardData._id)
+        confirmDelete.addEventListener('click', () => {
+            onDelete(data._id)
                 .then(() => {
-                    cardElement.remove();
+                    cardNode.remove(); // удаляем карточку из DOM
                 })
-                .catch((error) => {
-                    console.error('Ошибка при удалении карточки:', error);
+                .catch(err => {
+                    console.error('Ошибка при удалении:', err);
                 });
         });
     }
 
-    // Открытие попапа при клике на изображение
-    cardImage.addEventListener('click', () => {
-        openImagePopup(cardData.link, cardData.name);
+    // Устанавливаем изображение и его описание
+    imgElement.src = data.link;
+    imgElement.alt = data.name;
+
+    // Открытие изображения в попапе при клике
+    imgElement.addEventListener('click', () => {
+        onImageClick(data.link, data.name);
     });
 
-    // Устанавливаем ссылку и alt для изображения
-    cardImage.src = cardData.link;
-    cardImage.alt = cardData.name;
-
-    // Возвращаем готовую карточку
-    return cardElement;
+    // Возвращаем готовый DOM-элемент карточки
+    return cardNode;
 }
