@@ -45,6 +45,44 @@ const validationSettings = {
     errorClass: 'popup__error_visible',
 };
 
+// Утилита для управления состоянием загрузки кнопки
+const setButtonLoadingState = (button, isLoading, defaultText = 'Сохранить', loadingText = 'Сохранение...') => {
+    if (isLoading) {
+        button.textContent = loadingText;
+        button.disabled = true;
+    } else {
+        button.textContent = defaultText;
+        button.disabled = false;
+    }
+};
+
+// Обработчик клика по корзинке удаления
+export const handleDeleteClick = (cardId, cardElement) => {
+    // Открываем попап подтверждения удаления
+    // cardId - идентификатор карточки, cardElement - DOM-элемент карточки
+    const popupTrash = cardElement.querySelector('.popup_type_trash');
+    popupTrash.classList.add('popup_is-opened');
+
+    // Находим кнопку подтверждения
+    const confirmBtn = popupTrash.querySelector('.popup__button');
+    // Снимаем предыдущие обработчики (если есть)
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    newConfirmBtn.addEventListener('click', () => {
+        removeCard(cardId)
+            .then(() => {
+                cardElement.remove();
+            })
+            .catch(err => {
+                console.error('Ошибка при удалении:', err);
+            })
+            .finally(() => {
+                popupTrash.classList.remove('popup_is-opened');
+            });
+    });
+};
+
 // Открытие попапов
 btnEdit.addEventListener('click', () => {
     resetValidationState(formProfile, validationSettings);
@@ -54,6 +92,7 @@ btnEdit.addEventListener('click', () => {
 });
 
 btnAdd.addEventListener('click', () => {
+    formCard.reset(); // Очищаем поля формы
     resetValidationState(formCard, validationSettings);
     showPopup(popupAddCard);
 });
@@ -63,44 +102,50 @@ avatarElement.addEventListener('click', () => {
     showPopup(popupEditAvatar);
 });
 
-// Закрытие по кнопке
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('popup__close')) {
-        hidePopup(e.target.closest('.popup'));
+// Добавляем обработчики закрытия на кнопки и оверлеи каждого попапа
+document.querySelectorAll('.popup').forEach(popup => {
+    // Кнопка закрытия
+    const closeBtn = popup.querySelector('.popup__close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => hidePopup(popup));
     }
+    // Клик по оверлею
+    popup.addEventListener('mousedown', (e) => {
+        if (e.target === popup) {
+            hidePopup(popup);
+        }
+    });
 });
 
 // Открытие полноэкранного изображения
-function previewImage(link, title) {
+const previewImage = (link, title) => {
     popupImg.src = link;
     popupImg.alt = title;
     popupCaption.textContent = title;
     showPopup(popupImage);
 }
 
-document.addEventListener('click', overlayClickHandler);
 initFormValidation(validationSettings);
 
 // Отправка формы смены аватара
 formAvatar.addEventListener('submit', (e) => {
     e.preventDefault();
     const btn = formAvatar.querySelector('.popup__button');
-    btn.textContent = 'Сохранение...';
-    btn.disabled = true;
+    setButtonLoadingState(btn, true);
 
     validateImageURL(inputAvatar)
-        .catch(err => console.error('Ошибка валидации аватара:', err));
-
-    changeAvatar(inputAvatar)
+        .then(() => {
+            return changeAvatar(inputAvatar);
+        })
         .then(data => {
             avatarElement.style.backgroundImage = `url(${data.avatar})`;
-        })
-        .finally(() => {
-            btn.textContent = 'Сохранить';
-            btn.disabled = false;
             hidePopup(popupEditAvatar);
+            formAvatar.reset();
         })
-        .catch(err => console.error('Ошибка обновления аватара:', err));
+        .catch(err => console.error('Ошибка обновления аватара:', err))
+        .finally(() => {
+            setButtonLoadingState(btn, false);
+        });
 });
 
 // Отправка формы профиля
@@ -108,8 +153,7 @@ formProfile.addEventListener('submit', (e) => {
     e.preventDefault();
 
     const btn = formProfile.querySelector('.popup__button');
-    btn.textContent = 'Сохранение...';
-    btn.disabled = true;
+    setButtonLoadingState(btn, true);
 
     displayName.textContent = inputName.value;
     displayDesc.textContent = inputDesc.value;
@@ -118,13 +162,12 @@ formProfile.addEventListener('submit', (e) => {
         .then(data => {
             displayName.textContent = data.name;
             displayDesc.textContent = data.about;
-        })
-        .finally(() => {
-            btn.textContent = 'Сохранить';
-            btn.disabled = false;
             hidePopup(popupEditProfile);
         })
-        .catch(err => console.error('Ошибка обновления профиля:', err));
+        .catch(err => console.error('Ошибка обновления профиля:', err))
+        .finally(() => {
+            setButtonLoadingState(btn, false);
+        });
 });
 
 // Отправка формы карточки
@@ -135,21 +178,19 @@ formCard.addEventListener('submit', (e) => {
     const name = formCard.querySelector('.popup__input_type_card-name').value;
     const link = formCard.querySelector('.popup__input_type_url').value;
 
-    btn.textContent = 'Сохранение...';
-    btn.disabled = true;
+    setButtonLoadingState(btn, true);
 
     addCard(name, link)
         .then(card => {
-            const cardEl = createCard(card, removeCard, toggleLike, card.owner._id, previewImage);
+            const cardEl = createCard(card, handleDeleteClick, toggleLike, card.owner._id, previewImage);
             cardList.prepend(cardEl);
-        })
-        .finally(() => {
-            btn.textContent = 'Сохранить';
-            btn.disabled = false;
             formCard.reset();
             hidePopup(popupAddCard);
         })
-        .catch(err => console.error('Ошибка добавления карточки:', err));
+        .catch(err => console.error('Ошибка добавления карточки:', err))
+        .finally(() => {
+            setButtonLoadingState(btn, false);
+        });
 });
 
 // Загрузка начальных данных
@@ -161,7 +202,7 @@ Promise.all([fetchUserProfile(), fetchInitialCards()])
         const currentUserId = user._id;
 
         cards.forEach(card => {
-            const item = createCard(card, removeCard, toggleLike, currentUserId, previewImage);
+            const item = createCard(card, handleDeleteClick, toggleLike, currentUserId, previewImage);
             cardList.append(item);
         });
     })

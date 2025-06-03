@@ -1,5 +1,3 @@
-import { showPopup } from './modal';
-
 /**
  * Проверяет, содержит ли элемент указанный CSS-класс.
  *
@@ -7,21 +5,21 @@ import { showPopup } from './modal';
  * @param {string} className - Имя класса, которое нужно проверить.
  * @returns {boolean} - true, если элемент содержит класс, иначе false.
  */
-function hasClass(element, className) {
+const hasClass = (element, className) => {
     return element.classList.contains(className);
-}
+};
 
 /**
  * Создаёт DOM-элемент карточки на основе переданных данных.
  *
  * @param {Object} data - Данные карточки: имя, ссылка, лайки, владелец.
- * @param {Function} onDelete - Функция для удаления карточки с сервера.
+ * @param {Function} onDeleteClick - Обработчик клика по корзинке удаления (cardId, cardElement)
  * @param {Function} onLikeToggle - Функция для добавления/удаления лайка.
  * @param {string} userId - ID текущего пользователя.
  * @param {Function} onImageClick - Функция открытия попапа с изображением.
  * @returns {HTMLElement} - Созданный элемент карточки.
  */
-export function createCard(data, onDelete, onLikeToggle, userId, onImageClick) {
+export const createCard = (data, onDeleteClick, onLikeToggle, userId, onImageClick) => {
     // Получаем шаблон карточки и клонируем его содержимое
     const template = document.querySelector('#card-template').content;
     const cardNode = template.querySelector('.card').cloneNode(true);
@@ -32,8 +30,6 @@ export function createCard(data, onDelete, onLikeToggle, userId, onImageClick) {
     const likeCount = cardNode.querySelector('.card__count');
     const titleElement = cardNode.querySelector('.card__title');
     const btnDelete = cardNode.querySelector('.card__delete-button');
-    const popupTrash = cardNode.querySelector('.popup_type_trash');
-    const confirmDelete = cardNode.querySelector('.popup__button');
 
     // Устанавливаем данные карточки
     titleElement.textContent = data.name;
@@ -68,17 +64,7 @@ export function createCard(data, onDelete, onLikeToggle, userId, onImageClick) {
     } else {
         // Если владелец — добавляем обработчики удаления карточки
         btnDelete.addEventListener('click', () => {
-            showPopup(popupTrash); // открываем попап подтверждения
-        });
-
-        confirmDelete.addEventListener('click', () => {
-            onDelete(data._id)
-                .then(() => {
-                    cardNode.remove(); // удаляем карточку из DOM
-                })
-                .catch(err => {
-                    console.error('Ошибка при удалении:', err);
-                });
+            onDeleteClick(data._id, cardNode);
         });
     }
 
@@ -93,4 +79,4 @@ export function createCard(data, onDelete, onLikeToggle, userId, onImageClick) {
 
     // Возвращаем готовый DOM-элемент карточки
     return cardNode;
-}
+};
