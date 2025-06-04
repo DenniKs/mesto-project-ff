@@ -60,8 +60,11 @@ const setButtonLoadingState = (button, isLoading, defaultText = 'Сохрани�
 export const handleDeleteClick = (cardId, cardElement) => {
     // Открываем попап подтверждения удаления
     // cardId - идентификатор карточки, cardElement - DOM-элемент карточки
-    const popupTrash = cardElement.querySelector('.popup_type_trash');
-    popupTrash.classList.add('popup_is-opened');
+    const popupTrash = document.querySelector('.popup_type_trash');
+    if (!popupTrash) return;
+
+    // Открываем попап с помощью функции showPopup
+    showPopup(popupTrash);
 
     // Находим кнопку подтверждения
     const confirmBtn = popupTrash.querySelector('.popup__button');
@@ -69,16 +72,22 @@ export const handleDeleteClick = (cardId, cardElement) => {
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
+    // Находим и обновляем кнопку-крестик
+    const closeBtn = popupTrash.querySelector('.popup__close');
+    if (closeBtn) {
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+        newCloseBtn.addEventListener('click', () => hidePopup(popupTrash));
+    }
+
     newConfirmBtn.addEventListener('click', () => {
         removeCard(cardId)
             .then(() => {
                 cardElement.remove();
+                hidePopup(popupTrash); // Закрываем попап только при успешном удалении
             })
             .catch(err => {
                 console.error('Ошибка при удалении:', err);
-            })
-            .finally(() => {
-                popupTrash.classList.remove('popup_is-opened');
             });
     });
 };
@@ -154,9 +163,6 @@ formProfile.addEventListener('submit', (e) => {
 
     const btn = formProfile.querySelector('.popup__button');
     setButtonLoadingState(btn, true);
-
-    displayName.textContent = inputName.value;
-    displayDesc.textContent = inputDesc.value;
 
     editProfile(inputName.value, inputDesc.value)
         .then(data => {
