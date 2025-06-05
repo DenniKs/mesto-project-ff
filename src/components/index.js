@@ -77,14 +77,20 @@ export const handleDeleteClick = (cardId, cardElement) => {
     if (closeBtn) {
         const newCloseBtn = closeBtn.cloneNode(true);
         closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-        newCloseBtn.addEventListener('click', () => hidePopup(popupTrash));
+        newCloseBtn.addEventListener('click', () => {
+            hidePopup(popupTrash);
+            popupTrash.removeEventListener('mousedown', overlayClickHandler);
+        });
     }
+
+    popupTrash.addEventListener('mousedown', overlayClickHandler);
 
     newConfirmBtn.addEventListener('click', () => {
         removeCard(cardId)
             .then(() => {
                 cardElement.remove();
                 hidePopup(popupTrash); // Закрываем попап только при успешном удалении
+                popupTrash.removeEventListener('mousedown', overlayClickHandler);
             })
             .catch(err => {
                 console.error('Ошибка при удалении:', err);
