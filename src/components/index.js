@@ -58,12 +58,10 @@ const setButtonLoadingState = (button, isLoading, defaultText = 'Сохрани�
 
 // Обработчик клика по корзинке удаления
 export const handleDeleteClick = (cardId, cardElement) => {
-    // Открываем попап подтверждения удаления
-    // cardId - идентификатор карточки, cardElement - DOM-элемент карточки
     const popupTrash = document.querySelector('.popup_type_trash');
     if (!popupTrash) return;
 
-    // Открываем попап с помощью функции showPopup
+    // Открываем попап с помощью единой функции
     showPopup(popupTrash);
 
     // Находим кнопку подтверждения
@@ -72,25 +70,12 @@ export const handleDeleteClick = (cardId, cardElement) => {
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
-    // Находим и обновляем кнопку-крестик
-    const closeBtn = popupTrash.querySelector('.popup__close');
-    if (closeBtn) {
-        const newCloseBtn = closeBtn.cloneNode(true);
-        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-        newCloseBtn.addEventListener('click', () => {
-            hidePopup(popupTrash);
-            popupTrash.removeEventListener('mousedown', overlayClickHandler);
-        });
-    }
-
-    popupTrash.addEventListener('mousedown', overlayClickHandler);
-
+    // Добавляем обработчик подтверждения удаления
     newConfirmBtn.addEventListener('click', () => {
         removeCard(cardId)
             .then(() => {
                 cardElement.remove();
                 hidePopup(popupTrash); // Закрываем попап только при успешном удалении
-                popupTrash.removeEventListener('mousedown', overlayClickHandler);
             })
             .catch(err => {
                 console.error('Ошибка при удалении:', err);
